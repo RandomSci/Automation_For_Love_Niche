@@ -3,6 +3,29 @@ import os
 import json
 import random
 import tempfile
+import requests
+from datetime import datetime
+
+from fastapi import FastAPI, BackgroundTasks, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Viral Shorts Generator")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+current_job = {
+    "status": "idle",
+    "progress": 0,
+    "output": None,
+    "error": None,
+    "started_at": None
+}
 
 class ViralShortsGenerator:
     def __init__(self, main_image, audio_path, output_path="output.mp4", niche_config=None):
@@ -635,57 +658,146 @@ NICHE_TEMPLATES = {
 }
 
 
-def main():
-    """Main execution"""
-    
-    # ========== CONFIGURATION ==========
-    NICHE = 'love'
-    
-    main_image = "main_images/Dating_.jpg"
-    audio = "Audio_Voice/new_love.mp3"
-    output = "new_love.mp4"
-    bg_music = "bg_musics/For_Dating.mp3"
-    subtitle_file = "subtitles.srt" 
-    new_love_trascription_file = "Audio_Voice/new_love_transcription.json"
-    # ===================================
-    
-    if not os.path.exists(main_image):
-        print(f"❌ Main image not found: {main_image}")
-        return
-    
-    if not os.path.exists(audio):
-        print(f"❌ Audio file not found: {audio}")
-        return
-    
-    niche_config = NICHE_TEMPLATES.get(NICHE) if NICHE else None
-    
-    if NICHE and niche_config:
-        print(f"\n🎯 Using '{NICHE.upper()}' niche template")
-    else:
-        print(f"\n📋 Using default configuration")
-    
-    gen = ViralShortsGenerator(main_image, audio, output, niche_config=niche_config)
-    
-    success = gen.create_viral_video(
-        auto_generate_subs=True,
-        subtitle_style="cursive_pink_soft", #Change 
-        bg_music=bg_music if bg_music and os.path.exists(bg_music) else None,
-        bg_volume=0.25,
-        fps=30
-    )
-    
-    if success and os.path.exists(subtitle_file):
-        try:
-            os.remove(subtitle_file)
-            os.remove(new_love_trascription_file)
-            print(f"🗑 Deleted temporary subtitle file: {subtitle_file} & {new_love_trascription_file}")
-        except Exception as e:
-            print(f"⚠ Failed to delete subtitle file: {e}")
-    
-    if success:
-        print("✅ Subtle zoom adds professional touch without heavy processing!")
-        print("="*70)
+# =============== FASTAPI ENDPOINTS ===============
 
+@app.get("/")
+def root():
+    return {
+        "service": "Viral Shorts Generator",
+        "status": "running",
+        "endpoints": {
+            "POST /generate": "Generate video from GitHub audio",
+            "GET /status": "Check status",
+            "GET /download": "Download video"
+        }
+    }
+
+@app.post("/generate")
+async def generate_video_api(background_tasks: BackgroundTasks):
+    global current_job
+    
+    if current_job["status"] == "processing":
+        return {"message": "Already processing", "status": "processing"}
+    
+    current_job = {
+        "status": "processing",
+        "progress": 0,
+        "output": None,
+        "error": None,
+        "started_at": datetime.now().isoformat()
+    }
+    
+    background_tasks.add_task(process_video)
+    
+    return {
+        "message": "Video generation started",
+        "status": "processing"
+    }
+
+def process_video():
+    global current_job
+    
+    try:
+        current_job["progress"] = 10
+        
+        # Download latest audio from GitHub
+        print("📥 Downloading audio from GitHub...")
+        url = "https://raw.githubusercontent.com/RandomSci/Automation_For_Love_Niche/main/Audio_Voice/new_love.mp3"
+        response = requests.get(url)
+        
+        # Ensure directory exists
+        os.makedirs("Audio_Voice", exist_ok=True)
+        
+        with open("Audio_Voice/new_love.mp3", "wb") as f:
+            f.write(response.content)
+        
+        current_job["progress"] = 20
+        
+        # Clean up old files
+        for old_file in ["new_love.mp4", "new_love_cta.mp4", "subtitles.srt", "Audio_Voice/new_love_transcription.json"]:
+            if os.path.exists(old_file):
+                os.remove(old_file)
+        
+        current_job["progress"] = 30
+        
+        # Generate video using the existing main() logic
+        NICHE = 'love'
+        main_image = "main_images/Dating_.jpg"
+        audio = "Audio_Voice/new_love.mp3"
+        output = "new_love.mp4"
+        bg_music = "bg_musics/For_Dating.mp3"
+        
+        if not os.path.exists(main_image):
+            raise Exception(f"Main image not found: {main_image}")
+        
+        if not os.path.exists(audio):
+            raise Exception(f"Audio file not found: {audio}")
+        
+        niche_config = NICHE_TEMPLATES.get(NICHE)
+        
+        print(f"\n🎯 Using '{NICHE.upper()}' niche template")
+        
+        gen = ViralShortsGenerator(main_image, audio, output, niche_config=niche_config)
+        
+        success = gen.create_viral_video(
+            auto_generate_subs=True,
+            subtitle_style="cursive_pink_soft",
+            bg_music=bg_music if bg_music and os.path.exists(bg_music) else None,
+            bg_volume=0.25,
+            fps=30
+        )
+        
+        # Clean up temp files
+        subtitle_file = "subtitles.srt" 
+        new_love_transcription_file = "Audio_Voice/new_love_transcription.json"
+        
+        if success and os.path.exists(subtitle_file):
+            try:
+                os.remove(subtitle_file)
+                if os.path.exists(new_love_transcription_file):
+                    os.remove(new_love_transcription_file)
+                print(f"🗑 Deleted temporary files")
+            except Exception as e:
+                print(f"⚠ Failed to delete temp files: {e}")
+        
+        if success and os.path.exists("new_love_cta.mp4"):
+            current_job["status"] = "completed"
+            current_job["progress"] = 100
+            current_job["output"] = "new_love_cta.mp4"
+            print("✅ Video ready!")
+        else:
+            raise Exception("Video generation failed")
+        
+    except Exception as e:
+        current_job["status"] = "error"
+        current_job["error"] = str(e)
+        print(f"❌ Error: {e}")
+
+@app.get("/status")
+def check_status():
+    return {
+        "status": current_job["status"],
+        "progress": current_job["progress"],
+        "error": current_job["error"],
+        "started_at": current_job["started_at"],
+        "ready": current_job["status"] == "completed"
+    }
+
+@app.get("/download")
+def download_video():
+    if current_job["status"] != "completed":
+        raise HTTPException(400, f"Not ready. Status: {current_job['status']}")
+    
+    if not current_job["output"] or not os.path.exists(current_job["output"]):
+        raise HTTPException(404, "Video file not found")
+    
+    return FileResponse(
+        current_job["output"],
+        media_type="video/mp4",
+        filename=f"viral_video.mp4"
+    )
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
