@@ -590,7 +590,7 @@ NICHE_TEMPLATES = {
         'broll_dirs': {
             'couple': 'couple_romantic_vids',
             'candle': 'romantic_candle_vids',
-            #'flowers': 'romantic_flowers_vids',
+            'flowers': 'romantic_flowers_vids',
             'book': 'old_book_pages_turning_vids',
 
         },
