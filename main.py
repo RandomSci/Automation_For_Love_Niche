@@ -590,9 +590,12 @@ NICHE_TEMPLATES = {
         'broll_dirs': {
             'couple': 'couple_romantic_vids',
             'candle': 'romantic_candle_vids',
-            'flowers': 'romantic_flowers_vids',
+            #'flowers': 'romantic_flowers_vids',
+            'book': 'old_book_pages_turning_vids',
+
         },
         'keyword_map': {
+            'book': ['write', 'book', 'knowledge', 'teach', 'learn', 'wisdom', 'read'],
             'couple': ['love', 'together', 'relationship', 'partner', 'couple', 'romance', 'us', 'we'],
             'hands': ['hold', 'touch', 'feel', 'hand', 'embrace', 'close', 'connect', 'comfort'],
             'sunset': ['beautiful', 'moment', 'sunset', 'golden', 'magic', 'special', 'forever', 'dream'],
