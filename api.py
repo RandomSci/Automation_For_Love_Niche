@@ -5,7 +5,15 @@ import os
 import subprocess
 import time
 from datetime import datetime
+import requests
+import requests
 
+url = "https://raw.githubusercontent.com/RandomSci/Automation_For_Love_Niche/main/Audio_Voice/new_love.mp3"
+
+response = requests.get(url)
+with open("Audio_Voice/new_love.mp3", "wb") as f:
+        f.write(response.content)
+        
 app = FastAPI(title="Viral Shorts Generator")
 
 app.add_middleware(
