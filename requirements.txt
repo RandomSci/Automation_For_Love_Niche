@@ -1,1 +1,7 @@
-whisper
+fastapi
+uvicorn[standard]
+openai-whisper
+ffmpeg-python
+tqdm
+torch
+numpy
