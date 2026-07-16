@@ -4830,7 +4830,7 @@ Return your response as a JSON object: {"chunks": [{"chunk_index": 0, "class_nam
         def _do():
             return gpt4o_call(
                 client,
-                model="gpt-4.1",
+                model="gpt-5.5",
                 response_format={
                     "type": "json_schema",
                     "json_schema": {
